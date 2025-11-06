@@ -1,0 +1,201 @@
+-- Script: assignment_multi_condition_selection_statements.sql
+-- Session: 021 - Multi-Condition Selection Statements
+-- Instructions:
+--   • 10 questions with detailed prompts.
+--   • Answers are provided as fully runnable blocks in COMMENTED form.
+--   • To run an answer: copy below the question and remove the leading '--'.
+
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (Ranges with IF-ELSIF):
+--   Map v_marks to 'A'(>=90), 'B'(>=75), 'C'(>=60), 'D'(>=40), else 'F'.
+-- Answer (commented):
+-- DECLARE
+--   v_marks NUMBER := 72;
+--   v_grade VARCHAR2(2);
+-- BEGIN
+--   IF     v_marks >= 90 THEN v_grade := 'A';
+--   ELSIF  v_marks >= 75 THEN v_grade := 'B';
+--   ELSIF  v_marks >= 60 THEN v_grade := 'C';
+--   ELSIF  v_marks >= 40 THEN v_grade := 'D';
+--   ELSE                      v_grade := 'F';
+--   END IF;
+--   DBMS_OUTPUT.PUT_LINE('Grade='||v_grade);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Simple CASE mapping):
+--   Map 'U','P','C' to 'Under Review','Published','Closed', default 'Unknown'.
+-- Answer (commented):
+-- DECLARE
+--   v_st CHAR(1) := 'P';
+--   v_out VARCHAR2(20);
+-- BEGIN
+--   CASE v_st
+--     WHEN 'U' THEN v_out := 'Under Review';
+--     WHEN 'P' THEN v_out := 'Published';
+--     WHEN 'C' THEN v_out := 'Closed';
+--     ELSE        v_out := 'Unknown';
+--   END CASE;
+--   DBMS_OUTPUT.PUT_LINE(v_out);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Searched CASE with NULL-safe checks):
+--   Categorize v_amt: NULL->'NA', <0 'NEG', 0 'ZERO', 1..999 'LOW', >=1000 'HIGH'.
+-- Answer (commented):
+-- DECLARE
+--   v_amt NUMBER := NULL;
+--   v_cat VARCHAR2(10);
+-- BEGIN
+--   CASE
+--     WHEN v_amt IS NULL THEN v_cat := 'NA';
+--     WHEN v_amt < 0 THEN v_cat := 'NEG';
+--     WHEN v_amt = 0 THEN v_cat := 'ZERO';
+--     WHEN v_amt BETWEEN 1 AND 999 THEN v_cat := 'LOW';
+--     ELSE v_cat := 'HIGH';
+--   END CASE;
+--   DBMS_OUTPUT.PUT_LINE(v_cat);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Combine AND/OR):
+--   Authorize only if balance>=5000 AND (kyc_ok OR is_admin).
+-- Answer (commented):
+-- DECLARE
+--   v_balance NUMBER := 4800;
+--   v_kyc_ok  BOOLEAN := TRUE;
+--   v_is_admin BOOLEAN := FALSE;
+-- BEGIN
+--   IF (v_balance >= 5000) AND (v_kyc_ok OR v_is_admin) THEN
+--     DBMS_OUTPUT.PUT_LINE('AUTHORIZED');
+--   ELSE
+--     DBMS_OUTPUT.PUT_LINE('DENIED');
+--   END IF;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Guard clause practice):
+--   Early-exit if NOT active; otherwise print 'OK'.
+-- Answer (commented):
+-- DECLARE
+--   v_active BOOLEAN := FALSE;
+-- BEGIN
+--   IF NOT v_active THEN
+--     DBMS_OUTPUT.PUT_LINE('Inactive. Exit early.');
+--     RETURN;
+--   END IF;
+--   DBMS_OUTPUT.PUT_LINE('OK');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (NULL boolean handling):
+--   Given v_flag BOOLEAN may be NULL, print 'YES'/'NO'/'UNKNOWN' accordingly.
+-- Answer (commented):
+-- DECLARE
+--   v_flag BOOLEAN := NULL;
+-- BEGIN
+--   IF v_flag IS NULL THEN
+--     DBMS_OUTPUT.PUT_LINE('UNKNOWN');
+--   ELSIF v_flag THEN
+--     DBMS_OUTPUT.PUT_LINE('YES');
+--   ELSE
+--     DBMS_OUTPUT.PUT_LINE('NO');
+--   END IF;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (CASE vs nested IF readability):
+--   For code 'N','S','E','W', print 'North','South','East','West'; else 'NA'.
+-- Answer (commented):
+-- DECLARE
+--   v_code CHAR(1) := 'E';
+--   v_dir  VARCHAR2(10);
+-- BEGIN
+--   CASE v_code
+--     WHEN 'N' THEN v_dir := 'North';
+--     WHEN 'S' THEN v_dir := 'South';
+--     WHEN 'E' THEN v_dir := 'East';
+--     WHEN 'W' THEN v_dir := 'West';
+--     ELSE v_dir := 'NA';
+--   END CASE;
+--   DBMS_OUTPUT.PUT_LINE(v_dir);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Ordering conditions correctly):
+--   If v_speed>120 -> 'Overspeed', >=80 -> 'Fast', >=40 -> 'Moderate', else 'Slow'.
+--   Ensure no branch is unreachable.
+-- Answer (commented):
+-- DECLARE
+--   v_speed NUMBER := 95;
+--   v_label VARCHAR2(12);
+-- BEGIN
+--   IF v_speed > 120 THEN
+--     v_label := 'Overspeed';
+--   ELSIF v_speed >= 80 THEN
+--     v_label := 'Fast';
+--   ELSIF v_speed >= 40 THEN
+--     v_label := 'Moderate';
+--   ELSE
+--     v_label := 'Slow';
+--   END IF;
+--   DBMS_OUTPUT.PUT_LINE(v_label);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Three-valued logic—explicit handling):
+--   Given v_optin BOOLEAN may be TRUE/FALSE/NULL, print a human-friendly message.
+-- Answer (commented):
+-- DECLARE
+--   v_optin BOOLEAN := NULL;
+-- BEGIN
+--   IF v_optin IS NULL THEN
+--     DBMS_OUTPUT.PUT_LINE('No Response');
+--   ELSIF v_optin THEN
+--     DBMS_OUTPUT.PUT_LINE('Opted In');
+--   ELSE
+--     DBMS_OUTPUT.PUT_LINE('Opted Out');
+--   END IF;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Composite decision with searched CASE):
+--   Choose shipping: (weight>20 OR fragile=TRUE) -> 'Premium'; ELSE IF dest='INTL' -> 'Intl'; ELSE 'Std'.
+-- Answer (commented):
+-- DECLARE
+--   v_weight NUMBER := 15;
+--   v_fragile BOOLEAN := TRUE;
+--   v_dest   VARCHAR2(10) := 'DOM';
+--   v_ship   VARCHAR2(10);
+-- BEGIN
+--   CASE
+--     WHEN (v_weight > 20) OR v_fragile THEN v_ship := 'Premium';
+--     WHEN v_dest = 'INTL' THEN v_ship := 'Intl';
+--     ELSE v_ship := 'Std';
+--   END CASE;
+--   DBMS_OUTPUT.PUT_LINE('Shipping='||v_ship);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------
