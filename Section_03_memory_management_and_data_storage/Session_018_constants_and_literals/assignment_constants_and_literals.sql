@@ -1,0 +1,151 @@
+-- Script: assignment_constants_and_literals.sql
+-- Session: 018 - Constants and Literals
+-- Instructions:
+--   • 10 questions with detailed prompts and commented answers.
+--   • To run an answer, copy it below the question and remove leading '--'.
+
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (Basics): Declare a numeric CONSTANT c_rate := 0.12 and compute total for price 850.
+-- Answer (commented):
+-- DECLARE
+--   c_rate CONSTANT NUMBER := 0.12;
+--   v_price NUMBER := 850;
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE('Total = ' || (v_price + v_price*c_rate));
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Literals): Use DATE and TIMESTAMP literals to print '06-NOV-2025' and '06-NOV-2025 18:00:00'.
+-- Answer (commented):
+-- DECLARE
+--   d  DATE      := DATE '2025-11-06';
+--   ts TIMESTAMP := TIMESTAMP '2025-11-06 18:00:00';
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE(TO_CHAR(d,  'DD-MON-YYYY'));
+--   DBMS_OUTPUT.PUT_LINE(TO_CHAR(ts, 'DD-MON-YYYY HH24:MI:SS'));
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (%TYPE): Declare c_cap CONSTANT employees.salary%TYPE := 150000 and compare to a fetched salary.
+-- Answer (commented):
+-- DECLARE
+--   c_cap   CONSTANT employees.salary%TYPE := 150000;
+--   v_sal   employees.salary%TYPE;
+-- BEGIN
+--   SELECT salary INTO v_sal FROM employees WHERE ROWNUM = 1;
+--   IF v_sal > c_cap THEN
+--     DBMS_OUTPUT.PUT_LINE('Over cap');
+--   ELSE
+--     DBMS_OUTPUT.PUT_LINE('Within cap');
+--   END IF;
+-- EXCEPTION
+--   WHEN NO_DATA_FOUND THEN
+--     DBMS_OUTPUT.PUT_LINE('No employees found.');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Character Literal): Use q'[ ]' to store text: He said, "Don't worry". Print it.
+-- Answer (commented):
+-- DECLARE
+--   v_txt VARCHAR2(100) := q'[He said, "Don't worry"]';
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE(v_txt);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Immutability): Show that you cannot reassign a CONSTANT (explain in comments).
+-- Answer (commented):
+-- -- DECLARE
+-- --   c_x CONSTANT NUMBER := 10;
+-- -- BEGIN
+-- --   c_x := 20; -- Compile-time error: cannot assign to a CONSTANT
+-- -- END;
+-- -- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Derived CONSTANT): Define c_base := 400, c_disc := 0.25, c_net := c_base*(1-c_disc). Print all.
+-- Answer (commented):
+-- DECLARE
+--   c_base CONSTANT NUMBER := 400;
+--   c_disc CONSTANT NUMBER := 0.25;
+--   c_net  CONSTANT NUMBER := c_base*(1-c_disc);
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE('Base='||c_base||', Disc='||c_disc||', Net='||c_net);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Boolean Literal): Use TRUE/FALSE to conditionally print messages.
+-- Answer (commented):
+-- DECLARE
+--   v_active BOOLEAN := TRUE;
+-- BEGIN
+--   IF v_active THEN
+--     DBMS_OUTPUT.PUT_LINE('Active');
+--   ELSE
+--     DBMS_OUTPUT.PUT_LINE('Inactive');
+--   END IF;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Scope): Declare outer c_rate := 0.10; inner c_rate := 0.15; print both.
+-- Answer (commented):
+-- DECLARE
+--   c_rate CONSTANT NUMBER := 0.10;
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE('Outer='||c_rate);
+--   DECLARE
+--     c_rate CONSTANT NUMBER := 0.15;
+--   BEGIN
+--     DBMS_OUTPUT.PUT_LINE('Inner='||c_rate);
+--   END;
+--   DBMS_OUTPUT.PUT_LINE('Outer again='||c_rate);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Literals + Conversion): Format 123456.7 as '123,456.70' regardless of NLS.
+-- Answer (commented):
+-- DECLARE
+--   v NUMBER := 123456.7;
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE(TO_CHAR(v, 'FM999G999D00', 'NLS_NUMERIC_CHARACTERS=.,'));
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Mini Use-Case): Use constants for GST (0.18) and service charge (0.05) on 1200, print breakdown.
+-- Answer (commented):
+-- DECLARE
+--   c_gst   CONSTANT NUMBER := 0.18;
+--   c_svc   CONSTANT NUMBER := 0.05;
+--   v_base  NUMBER := 1200;
+--   v_gst   NUMBER;
+--   v_svc   NUMBER;
+--   v_total NUMBER;
+-- BEGIN
+--   v_gst   := v_base * c_gst;
+--   v_svc   := v_base * c_svc;
+--   v_total := v_base + v_gst + v_svc;
+--   DBMS_OUTPUT.PUT_LINE('Base='||v_base||', GST='||v_gst||', Svc='||v_svc||', Total='||v_total);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------
