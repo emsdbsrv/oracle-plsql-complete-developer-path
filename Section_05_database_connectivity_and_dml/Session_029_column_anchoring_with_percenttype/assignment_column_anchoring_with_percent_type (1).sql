@@ -1,0 +1,179 @@
+-- Script: assignment_column_anchoring_with_percent_type.sql
+-- Session: 029 - Column Anchoring with %TYPE
+-- Format:
+--   • 10 detailed questions with complete solutions provided as COMMENTED hints.
+--   • To run a solution: copy the commented block and remove leading '--'.
+-- Guidance:
+--   • Prefer column-anchored variables (table.col%TYPE) to prevent datatype drift.
+--   • Anchor procedure/function parameters and RETURNING INTO targets to columns.
+--   • Use %ROWTYPE for whole-row operations when appropriate; combine with column%TYPE where needed.
+
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (Basic %TYPE): Declare v_name anchored to emp_type_demo.emp_name and print for emp_id=1.
+-- Answer (commented):
+-- DECLARE
+--   v_name emp_type_demo.emp_name%TYPE;
+-- BEGIN
+--   SELECT emp_name INTO v_name FROM emp_type_demo WHERE emp_id = 1;
+--   DBMS_OUTPUT.PUT_LINE('name='||v_name);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Multiple columns): Anchor name and salary; SELECT INTO for emp_id=2; print both.
+-- Answer (commented):
+-- DECLARE
+--   v_name   emp_type_demo.emp_name%TYPE;
+--   v_salary emp_type_demo.salary%TYPE;
+-- BEGIN
+--   SELECT emp_name, salary
+--   INTO   v_name,   v_salary
+--   FROM   emp_type_demo
+--   WHERE  emp_id = 2;
+--   DBMS_OUTPUT.PUT_LINE('name='||v_name||', salary='||v_salary);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (JOIN with %TYPE): Anchor v_emp and v_dept and print 'emp (dept)' for emp_id=3.
+-- Answer (commented):
+-- DECLARE
+--   v_emp  emp_type_demo.emp_name%TYPE;
+--   v_dept dept_type_demo.dept_name%TYPE;
+-- BEGIN
+--   SELECT e.emp_name, d.dept_name
+--   INTO   v_emp,     v_dept
+--   FROM   emp_type_demo e
+--   JOIN   dept_type_demo d ON d.dept_id = e.dept_id
+--   WHERE  e.emp_id = 3;
+--   DBMS_OUTPUT.PUT_LINE(v_emp||' ('||v_dept||')');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Anchored parameters): Write a proc set_email(p_id emp_id%TYPE, p_mail email%TYPE)
+--     to update and print SQL%%ROWCOUNT; call it for emp_id=2.
+-- Answer (commented):
+-- DECLARE
+--   PROCEDURE set_email(
+--     p_id   IN emp_type_demo.emp_id%TYPE,
+--     p_mail IN emp_type_demo.email%TYPE
+--   ) IS
+--   BEGIN
+--     UPDATE emp_type_demo SET email = p_mail WHERE emp_id = p_id;
+--     DBMS_OUTPUT.PUT_LINE('rows='||SQL%ROWCOUNT);
+--   END;
+-- BEGIN
+--   set_email(2, 'raj.updated@example.com');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (RETURNING INTO): Give emp_id=1 a 250 raise and capture new salary in a column%TYPE var.
+-- Answer (commented):
+-- DECLARE
+--   v_new emp_type_demo.salary%TYPE;
+-- BEGIN
+--   UPDATE emp_type_demo
+--   SET    salary = salary + 250
+--   WHERE  emp_id = 1
+--   RETURNING salary INTO v_new;
+--   DBMS_OUTPUT.PUT_LINE('rows='||SQL%ROWCOUNT||', new_salary='||v_new);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Collection anchored to column): Define TABLE OF emp_name%TYPE; bulk collect names for dept=10.
+-- Answer (commented):
+-- DECLARE
+--   TYPE t_names IS TABLE OF emp_type_demo.emp_name%TYPE;
+--   v_names t_names;
+-- BEGIN
+--   SELECT emp_name BULK COLLECT INTO v_names
+--   FROM   emp_type_demo
+--   WHERE  dept_id = 10
+--   ORDER  BY emp_id;
+--   FOR i IN 1..v_names.COUNT LOOP
+--     DBMS_OUTPUT.PUT_LINE('name='||v_names(i));
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Function returning column%TYPE): get_email(emp_id) RETURN emp_type_demo.email%TYPE; print for id=3.
+-- Answer (commented):
+-- DECLARE
+--   FUNCTION get_email(p_id IN emp_type_demo.emp_id%TYPE)
+--     RETURN emp_type_demo.email%TYPE
+--   IS
+--     v_mail emp_type_demo.email%TYPE;
+--   BEGIN
+--     SELECT email INTO v_mail FROM emp_type_demo WHERE emp_id = p_id;
+--     RETURN v_mail;
+--   END;
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE('email='||get_email(3));
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (API safety with anchors): bump_salary(p_id emp_id%TYPE, p_delta salary%TYPE) and print SQL%%ROWCOUNT.
+-- Answer (commented):
+-- DECLARE
+--   PROCEDURE bump_salary(
+--     p_id    IN emp_type_demo.emp_id%TYPE,
+--     p_delta IN emp_type_demo.salary%TYPE
+--   ) IS
+--   BEGIN
+--     UPDATE emp_type_demo SET salary = salary + p_delta WHERE emp_id = p_id;
+--     DBMS_OUTPUT.PUT_LINE('rows='||SQL%ROWCOUNT);
+--   END;
+-- BEGIN
+--   bump_salary(3, 1000);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Cross-table anchors): Anchor dept_name and email; SELECT INTO both via JOIN for emp_id=1.
+-- Answer (commented):
+-- DECLARE
+--   v_dept  dept_type_demo.dept_name%TYPE;
+--   v_email emp_type_demo.email%TYPE;
+-- BEGIN
+--   SELECT d.dept_name, e.email
+--   INTO   v_dept,     v_email
+--   FROM   emp_type_demo e
+--   JOIN   dept_type_demo d ON d.dept_id = e.dept_id
+--   WHERE  e.emp_id = 1;
+--   DBMS_OUTPUT.PUT_LINE('dept='||v_dept||', email='||v_email);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Refactor fixed VARCHAR2 to column%TYPE): Replace hard-coded types with anchors and print.
+-- Answer (commented):
+-- DECLARE
+--   v_emp   emp_type_demo.emp_name%TYPE;
+--   v_mail  emp_type_demo.email%TYPE;
+-- BEGIN
+--   SELECT emp_name, email
+--   INTO   v_emp,    v_mail
+--   FROM   emp_type_demo
+--   WHERE  emp_id = 2;
+--   DBMS_OUTPUT.PUT_LINE(v_emp||' <'||v_mail||'>');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------
