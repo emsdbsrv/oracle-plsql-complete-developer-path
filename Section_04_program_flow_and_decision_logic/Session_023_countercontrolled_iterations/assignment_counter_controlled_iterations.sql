@@ -1,0 +1,142 @@
+-- Script: assignment_counter_controlled_iterations.sql
+-- Session: 023 - Counter-Controlled Iterations (FOR)
+-- Instructions:
+--   • 10 questions with detailed prompts.
+--   • Answers are fully runnable PL/SQL blocks provided as COMMENTED hints.
+--   • To run an answer, copy it below the question and remove the leading '--'.
+
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (Ascending FOR): Print 1..10 using a FOR loop.
+-- Answer (commented):
+-- BEGIN
+--   FOR i IN 1 .. 10 LOOP
+--     DBMS_OUTPUT.PUT_LINE(i);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Descending REVERSE): Print 5..1 using REVERSE.
+-- Answer (commented):
+-- BEGIN
+--   FOR i IN REVERSE 5 .. 1 LOOP
+--     DBMS_OUTPUT.PUT_LINE(i);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Skip rule): Print 1..15 skipping multiples of 3 using CONTINUE WHEN.
+-- Answer (commented):
+-- BEGIN
+--   FOR i IN 1 .. 15 LOOP
+--     CONTINUE WHEN MOD(i,3) = 0;
+--     DBMS_OUTPUT.PUT_LINE('val='||i);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Early exit): Sum 1..N (N=20) but EXIT WHEN total >= 60. Print final sum.
+-- Answer (commented):
+-- DECLARE
+--   v_sum NUMBER := 0;
+-- BEGIN
+--   FOR i IN 1 .. 20 LOOP
+--     v_sum := v_sum + i;
+--     EXIT WHEN v_sum >= 60;
+--   END LOOP;
+--   DBMS_OUTPUT.PUT_LINE('Sum='||v_sum);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Collection iteration): Given t_nums(2,4,6,8), print elements with indexes.
+-- Answer (commented):
+-- DECLARE
+--   TYPE t_nums IS TABLE OF NUMBER;
+--   v_tab t_nums := t_nums(2,4,6,8);
+-- BEGIN
+--   FOR i IN 1 .. v_tab.COUNT LOOP
+--     DBMS_OUTPUT.PUT_LINE('v_tab['||i||']='||v_tab(i));
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Cursor FOR): Iterate over SELECT of 3 rows and print values.
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (
+--     SELECT 101 AS id, 'Alpha' AS name FROM dual
+--     UNION ALL SELECT 102, 'Beta' FROM dual
+--     UNION ALL SELECT 103, 'Gamma' FROM dual
+--   ) LOOP
+--     DBMS_OUTPUT.PUT_LINE('Row: id='||r.id||', name='||r.name);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Nested loops): Print a 3x3 grid of (i,j) pairs.
+-- Answer (commented):
+-- BEGIN
+--   FOR i IN 1 .. 3 LOOP
+--     FOR j IN 1 .. 3 LOOP
+--       DBMS_OUTPUT.PUT_LINE('('||i||','||j||')');
+--     END LOOP;
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Index immutability): Show that assigning to loop index is not allowed (explain).
+-- Answer (commented):
+-- -- The loop index is read-only. The following would raise PLS-00363 (expression cannot be used as an assignment target):
+-- -- BEGIN
+-- --   FOR i IN 1 .. 3 LOOP
+-- --     -- i := 10; -- invalid
+-- --     DBMS_OUTPUT.PUT_LINE(i);
+-- --   END LOOP;
+-- -- END;
+-- -- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Conditional inside FOR): Print only odd numbers from 1..12 using IF inside the loop.
+-- Answer (commented):
+-- BEGIN
+--   FOR i IN 1 .. 12 LOOP
+--     IF MOD(i,2) = 1 THEN
+--       DBMS_OUTPUT.PUT_LINE('odd='||i);
+--     END IF;
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Running total with threshold): Add numbers 1..100; print running total each step; EXIT WHEN total > 200.
+-- Answer (commented):
+-- DECLARE
+--   v_sum NUMBER := 0;
+-- BEGIN
+--   FOR i IN 1 .. 100 LOOP
+--     v_sum := v_sum + i;
+--     DBMS_OUTPUT.PUT_LINE('i='||i||' sum='||v_sum);
+--     EXIT WHEN v_sum > 200;
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------

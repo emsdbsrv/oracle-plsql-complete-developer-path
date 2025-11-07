@@ -1,0 +1,208 @@
+-- Script: assignment_unconditional_loop_mechanisms.sql
+-- Session: 024 - Unconditional Loop Mechanisms (LOOP ... EXIT)
+-- Format:
+--   • 10 detailed questions. Each includes a fully runnable solution as a COMMENTED hint.
+--   • To run a solution: copy it below the question and remove the leading '--' markers.
+-- Guidance:
+--   • Always identify driver variables (counters, indexes, flags) and show how they change.
+--   • Put EXIT WHEN near your driver updates; add caps when termination is uncertain.
+--   • Use CONTINUE WHEN for skip rules to keep logic readable.
+
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (Post-test style): Print numbers 1..10 using LOOP and EXIT WHEN.
+-- Requirements:
+--   • Start from 0, increment first, then print, then exit at 10.
+--   • Show your driver variable clearly.
+-- Solution (commented):
+-- DECLARE
+--   v_i PLS_INTEGER := 0;
+-- BEGIN
+--   LOOP
+--     v_i := v_i + 1;                    -- driver update
+--     DBMS_OUTPUT.PUT_LINE(v_i);         -- work
+--     EXIT WHEN v_i >= 10;               -- termination
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Skip rule): Print 1..15 but skip multiples of 4 using CONTINUE WHEN.
+-- Requirements:
+--   • Ensure termination at 15 with EXIT WHEN.
+-- Solution (commented):
+-- DECLARE
+--   v_i PLS_INTEGER := 0;
+-- BEGIN
+--   LOOP
+--     v_i := v_i + 1;
+--     CONTINUE WHEN MOD(v_i,4)=0;        -- skip rule
+--     DBMS_OUTPUT.PUT_LINE('val='||v_i);
+--     EXIT WHEN v_i >= 15;               -- termination
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Sentinel): Simulate reading strings until 'STOP' is encountered.
+-- Requirements:
+--   • Include out-of-data guard and sentinel break.
+-- Solution (commented):
+-- DECLARE
+--   TYPE t_tab IS TABLE OF VARCHAR2(20);
+--   v_t t_tab := t_tab('go','run','STOP','keep');
+--   i PLS_INTEGER := 0;
+--   tok VARCHAR2(20);
+-- BEGIN
+--   LOOP
+--     i := i + 1;
+--     EXIT WHEN i > v_t.COUNT;   -- guard
+--     tok := v_t(i);
+--     EXIT WHEN tok = 'STOP';    -- sentinel
+--     DBMS_OUTPUT.PUT_LINE(tok);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Polling + cap): Poll until a flag turns TRUE; set it TRUE at i=4; cap at 6.
+-- Requirements:
+--   • Print the poll number each pass; show both termination paths.
+-- Solution (commented):
+-- DECLARE
+--   v_ready BOOLEAN := FALSE;
+--   v_iter  PLS_INTEGER := 0;
+--   c_max   CONSTANT PLS_INTEGER := 6;
+-- BEGIN
+--   LOOP
+--     v_iter := v_iter + 1;
+--     DBMS_OUTPUT.PUT_LINE('poll '||v_iter);
+--     IF v_iter = 4 THEN v_ready := TRUE; END IF;
+--     EXIT WHEN v_ready OR v_iter >= c_max;
+--   END LOOP;
+--   DBMS_OUTPUT.PUT_LINE('ready='||CASE WHEN v_ready THEN 'TRUE' ELSE 'FALSE' END);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Break on NULL): Iterate numeric array; exit on first NULL and print index.
+-- Requirements:
+--   • Demonstrate both guards: out-of-range and data-driven NULL break.
+-- Solution (commented):
+-- DECLARE
+--   TYPE t_nums IS TABLE OF NUMBER;
+--   v_arr t_nums := t_nums(5,10,NULL,20);
+--   i PLS_INTEGER := 0;
+-- BEGIN
+--   LOOP
+--     i := i + 1;
+--     EXIT WHEN i > v_arr.COUNT;               -- guard
+--     IF v_arr(i) IS NULL THEN
+--       DBMS_OUTPUT.PUT_LINE('NULL at '||i);
+--       EXIT;
+--     END IF;
+--     DBMS_OUTPUT.PUT_LINE('arr['||i||']='||v_arr(i));
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Producer–Consumer): Drain a queue until empty and print each item.
+-- Requirements:
+--   • Use DELETE(1) to consume the head; add an EMPTY check.
+-- Solution (commented):
+-- DECLARE
+--   TYPE t_q IS TABLE OF VARCHAR2(20);
+--   v_q t_q := t_q('a','b','c','d');
+-- BEGIN
+--   LOOP
+--     EXIT WHEN v_q.COUNT = 0;
+--     DBMS_OUTPUT.PUT_LINE('pop '||v_q(1));
+--     v_q.DELETE(1);
+--   END LOOP;
+--   DBMS_OUTPUT.PUT_LINE('done');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Two exits): Stop if iterations exceed 8 OR sum exceeds 30 (whichever first).
+-- Requirements:
+--   • Log both iteration and sum.
+-- Solution (commented):
+-- DECLARE
+--   v_i   PLS_INTEGER := 0;
+--   v_sum NUMBER := 0;
+-- BEGIN
+--   LOOP
+--     v_i := v_i + 1;
+--     v_sum := v_sum + v_i;
+--     EXIT WHEN v_i > 8;
+--     EXIT WHEN v_sum > 30;
+--   END LOOP;
+--   DBMS_OUTPUT.PUT_LINE('i='||v_i||', sum='||v_sum);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Skip even; stop at first odd >=  nine): Use CONTINUE WHEN and EXIT WHEN.
+-- Requirements:
+--   • Print only odd values lower than 9.
+-- Solution (commented):
+-- DECLARE
+--   v_i PLS_INTEGER := 0;
+-- BEGIN
+--   LOOP
+--     v_i := v_i + 1;
+--     CONTINUE WHEN MOD(v_i,2)=0;   -- skip evens
+--     EXIT WHEN v_i >= 9;           -- stop at first odd >= 9
+--     DBMS_OUTPUT.PUT_LINE('odd='||v_i);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Iteration logging): Print 'iter=<n>' each pass; stop at 5.
+-- Requirements:
+--   • Keep EXIT WHEN next to the counter increment.
+-- Solution (commented):
+-- DECLARE
+--   v_iter PLS_INTEGER := 0;
+-- BEGIN
+--   LOOP
+--     v_iter := v_iter + 1;
+--     DBMS_OUTPUT.PUT_LINE('iter='||v_iter);
+--     EXIT WHEN v_iter >= 5;
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Defensive cap): Show a loop where business condition may never flip; use MAX_ITERS=10.
+-- Requirements:
+--   • Demonstrate the safety behavior clearly.
+-- Solution (commented):
+-- DECLARE
+--   v_more BOOLEAN := TRUE;               -- imagine this never flips
+--   v_i    PLS_INTEGER := 0;
+--   c_max  CONSTANT PLS_INTEGER := 10;
+-- BEGIN
+--   LOOP
+--     v_i := v_i + 1;
+--     EXIT WHEN NOT v_more OR v_i >= c_max;
+--   END LOOP;
+--   DBMS_OUTPUT.PUT_LINE('Stopped safely at i='||v_i);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------
