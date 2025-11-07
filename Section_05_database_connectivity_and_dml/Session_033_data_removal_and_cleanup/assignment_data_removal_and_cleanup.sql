@@ -1,0 +1,137 @@
+-- Script: assignment_data_removal_and_cleanup.sql
+-- Session: 033 - Data Removal and Cleanup (Production Patterns)
+-- Format:
+--   • 10 detailed questions with complete solutions provided as COMMENTED hints.
+--   • To run a solution: copy the commented block and remove leading '--'.
+-- Guidance:
+--   • Archive-first for compliance, then DELETE.
+--   • Prefer soft delete in operational paths; purge with windows.
+--   • TRUNCATE is DDL and not rollback-able; use with caution.
+
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (DELETE + RETURNING): Delete orders with status='CANCEL' and print returned order_id.
+-- Answer (commented):
+-- DECLARE
+--   v NUMBER;
+-- BEGIN
+--   DELETE FROM orders WHERE status='CANCEL' RETURNING order_id INTO v;
+--   DBMS_OUTPUT.PUT_LINE('deleted id='||v||' rows='||SQL%ROWCOUNT);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (DELETE with NOT EXISTS): Remove orders that have no child lines.
+-- Answer (commented):
+-- BEGIN
+--   DELETE FROM orders o WHERE NOT EXISTS (SELECT 1 FROM orders_child c WHERE c.order_id=o.order_id);
+--   DBMS_OUTPUT.PUT_LINE('rows='||SQL%ROWCOUNT);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Archive-before-delete): Move CLOSED orders older than 45 days to archive and delete from live; commit.
+-- Answer (commented):
+-- BEGIN
+--   INSERT INTO orders_archive SELECT * FROM orders WHERE status='CLOSED' AND created_on < SYSDATE-45;
+--   DBMS_OUTPUT.PUT_LINE('archived='||SQL%ROWCOUNT);
+--   DELETE FROM orders WHERE status='CLOSED' AND created_on < SYSDATE-45;
+--   DBMS_OUTPUT.PUT_LINE('deleted='||SQL%ROWCOUNT);
+--   COMMIT;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Soft delete): Mark OPEN orders below amount 25 as soft-deleted; set deleted_on=SYSDATE.
+-- Answer (commented):
+-- BEGIN
+--   UPDATE orders SET is_deleted='Y', deleted_on=SYSDATE WHERE status='OPEN' AND amount<25;
+--   DBMS_OUTPUT.PUT_LINE('soft='||SQL%ROWCOUNT);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (TRUNCATE): Truncate orders_child; print a message (cannot check SQL%%ROWCOUNT).
+-- Answer (commented):
+-- BEGIN
+--   EXECUTE IMMEDIATE 'TRUNCATE TABLE orders_child';
+--   DBMS_OUTPUT.PUT_LINE('truncated child');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Bulk FORALL delete): Delete ids (1,2,3); capture bulk exceptions.
+-- Answer (commented):
+-- DECLARE
+--   TYPE t_ids IS TABLE OF orders.order_id%TYPE;
+--   ids t_ids := t_ids(1,2,3);
+--   errors EXCEPTION; PRAGMA EXCEPTION_INIT(errors, -24381);
+-- BEGIN
+--   BEGIN
+--     FORALL i IN 1..ids.COUNT SAVE EXCEPTIONS
+--       DELETE FROM orders WHERE order_id=ids(i);
+--   EXCEPTION WHEN errors THEN
+--     DBMS_OUTPUT.PUT_LINE('bulk errors='||SQL%BULK_EXCEPTIONS.COUNT);
+--   END;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (SAVEPOINT/ROLLBACK): Delete order_id=4, then attempt delete order_id=-1; rollback second only.
+-- Answer (commented):
+-- BEGIN
+--   SAVEPOINT s1;
+--   DELETE FROM orders WHERE order_id=4;
+--   SAVEPOINT s2;
+--   DELETE FROM orders WHERE order_id=-1;
+--   IF SQL%ROWCOUNT=0 THEN ROLLBACK TO s2; DBMS_OUTPUT.PUT_LINE('rolled back second'); END IF;
+--   COMMIT;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Cascade awareness): Recreate parent+child then delete parent and verify cascade.
+-- Answer (commented):
+-- DECLARE
+--   v NUMBER := 2000;
+-- BEGIN
+--   INSERT INTO orders(order_id,customer,status,amount) VALUES (v,'Tmp','OPEN',10);
+--   INSERT INTO orders_child(line_id,order_id,sku,qty) VALUES (v*10,v,'TMP',1);
+--   COMMIT;
+--   DELETE FROM orders WHERE order_id=v;
+--   DBMS_OUTPUT.PUT_LINE('parent deleted rows='||SQL%ROWCOUNT);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Conditional delete window): Delete soft-deleted rows older than 30 days.
+-- Answer (commented):
+-- BEGIN
+--   DELETE FROM orders WHERE is_deleted='Y' AND deleted_on < SYSDATE-30;
+--   DBMS_OUTPUT.PUT_LINE('purged='||SQL%ROWCOUNT);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Pre-check dry run): Print COUNT(*) that would be deleted for amount < 20; do NOT delete.
+-- Answer (commented):
+-- DECLARE
+--   v NUMBER;
+-- BEGIN
+--   SELECT COUNT(*) INTO v FROM orders WHERE amount < 20;
+--   DBMS_OUTPUT.PUT_LINE('dry-run count='||v);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------
