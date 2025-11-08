@@ -1,0 +1,124 @@
+-- Script: assignment_unnamed_execution_blocks.sql
+-- Session: 035 - Unnamed Execution Blocks (Anonymous Blocks)
+-- Format:
+--   • 10 detailed questions with complete solutions provided as COMMENTED hints.
+--   • To run a solution: copy the commented block and remove leading '--'.
+-- Guidance:
+--   • Structure: DECLARE → BEGIN → EXCEPTION → END; terminate with '/'
+--   • Use DBMS_OUTPUT for visible results; SET SERVEROUTPUT ON
+
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (Hello block): Print 'Hello, PL/SQL'.
+-- Answer (commented):
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE('Hello, PL/SQL');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Variables): Multiply qty * price and print total.
+-- Answer (commented):
+-- DECLARE
+--   v_qty   PLS_INTEGER := 4;
+--   v_price NUMBER(10,2) := 99.50;
+--   v_total NUMBER(10,2);
+-- BEGIN
+--   v_total := v_qty * v_price;
+--   DBMS_OUTPUT.PUT_LINE('total='||v_total);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Constants & NOT NULL): Use tax constant and compute total.
+-- Answer (commented):
+-- DECLARE
+--   c_tax CONSTANT NUMBER := 0.18;
+--   v_sub NUMBER := 820;
+--   v_tot NUMBER NOT NULL := 0;
+-- BEGIN
+--   v_tot := v_sub + v_sub*c_tax;
+--   DBMS_OUTPUT.PUT_LINE('total='||v_tot);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (SELECT INTO): Count rows in dual and print.
+-- Answer (commented):
+-- DECLARE
+--   v_cnt NUMBER;
+-- BEGIN
+--   SELECT COUNT(*) INTO v_cnt FROM dual;
+--   DBMS_OUTPUT.PUT_LINE('count='||v_cnt);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (ZERO_DIVIDE): Catch divide-by-zero gracefully.
+-- Answer (commented):
+-- DECLARE
+--   a NUMBER := 5; b NUMBER := 0; c NUMBER;
+-- BEGIN
+--   c := a/b;
+-- EXCEPTION
+--   WHEN ZERO_DIVIDE THEN DBMS_OUTPUT.PUT_LINE('Divide by zero not allowed.');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (NO_DATA_FOUND): Try selecting a missing user.
+-- Answer (commented):
+-- DECLARE
+--   v_name VARCHAR2(30);
+-- BEGIN
+--   SELECT username INTO v_name FROM all_users WHERE username='NO_SUCH_USER_X';
+--   DBMS_OUTPUT.PUT_LINE(v_name);
+-- EXCEPTION WHEN NO_DATA_FOUND THEN DBMS_OUTPUT.PUT_LINE('Missing user.');
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Nested blocks): Show inner variable shadowing outer.
+-- Answer (commented):
+-- DECLARE v_msg VARCHAR2(10):='outer'; BEGIN
+--   DECLARE v_msg VARCHAR2(10):='inner'; BEGIN DBMS_OUTPUT.PUT_LINE('inner='||v_msg); END;
+--   DBMS_OUTPUT.PUT_LINE('outer='||v_msg);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (User-defined exception): Map ORA-00001 and catch duplicate.
+-- Answer (commented):
+-- DECLARE
+--   e_dup EXCEPTION; PRAGMA EXCEPTION_INIT(e_dup, -1);
+-- BEGIN
+--   EXECUTE IMMEDIATE 'BEGIN EXECUTE IMMEDIATE ''DROP TABLE t_a PURGE''; EXCEPTION WHEN OTHERS THEN NULL; END;';
+--   EXECUTE IMMEDIATE 'CREATE TABLE t_a(id NUMBER CONSTRAINT t_a_pk PRIMARY KEY)';
+--   EXECUTE IMMEDIATE 'INSERT INTO t_a VALUES (1)';
+--   EXECUTE IMMEDIATE 'INSERT INTO t_a VALUES (1)';
+-- EXCEPTION WHEN e_dup THEN DBMS_OUTPUT.PUT_LINE('Duplicate key.'); WHEN OTHERS THEN DBMS_OUTPUT.PUT_LINE(SQLERRM);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Boolean & IF): Print OK based on flag.
+-- Answer (commented):
+-- DECLARE v_ok BOOLEAN := TRUE; BEGIN IF v_ok THEN DBMS_OUTPUT.PUT_LINE('OK'); END IF; END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (WHEN OTHERS logging): Force an error and log SQLERRM.
+-- Answer (commented):
+-- BEGIN EXECUTE IMMEDIATE 'select * from not_a_table'; EXCEPTION WHEN OTHERS THEN DBMS_OUTPUT.PUT_LINE('Error='||SQLERRM); END; /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------
