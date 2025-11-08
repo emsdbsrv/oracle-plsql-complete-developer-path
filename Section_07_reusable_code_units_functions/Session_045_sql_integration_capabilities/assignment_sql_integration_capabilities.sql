@@ -1,0 +1,147 @@
+-- Script: assignment_sql_integration_capabilities.sql
+-- Session: 045 - SQL Integration Capabilities
+-- Format:
+--   • 10 tasks. Each includes a problem statement and a complete commented answer block.
+--   • To run a solution: copy the commented block and remove leading '--'.
+-- Guidance:
+--   • Prefer %TYPE/%ROWTYPE.
+--   • Use RETURNING INTO when you need generated/changed values.
+--   • Consider MERGE for upserts; cursor FOR loop for simple iteration.
+SET SERVEROUTPUT ON;
+
+--------------------------------------------------------------------------------
+-- Q1 (SELECT INTO): Fetch cust_name, credit for cust_id=2 and print.
+-- Answer (commented):
+-- DECLARE
+--   v_name  si_customers.cust_name%TYPE;
+--   v_cred  si_customers.credit_amt%TYPE;
+-- BEGIN
+--   SELECT cust_name, credit_amt INTO v_name, v_cred FROM si_customers WHERE cust_id=2;
+--   DBMS_OUTPUT.PUT_LINE('id=2 -> '||v_name||' credit='||v_cred);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (NO_DATA_FOUND): Attempt to select id=999; catch NO_DATA_FOUND and print a message.
+-- Answer (commented):
+-- DECLARE
+--   v_name si_customers.cust_name%TYPE;
+-- BEGIN
+--   BEGIN
+--     SELECT cust_name INTO v_name FROM si_customers WHERE cust_id=999;
+--     DBMS_OUTPUT.PUT_LINE('name='||v_name);
+--   EXCEPTION WHEN NO_DATA_FOUND THEN
+--     DBMS_OUTPUT.PUT_LINE('no such customer');
+--   END;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (INSERT RETURNING): Insert a row and capture created_on with RETURNING INTO.
+-- Answer (commented):
+-- DECLARE
+--   v_id si_customers.cust_id%TYPE := 10;
+--   v_created si_customers.created_on%TYPE;
+-- BEGIN
+--   INSERT INTO si_customers(cust_id, cust_name, country_iso, credit_amt)
+--   VALUES (v_id, 'Ira', 'IN', 400)
+--   RETURNING created_on INTO v_created;
+--   DBMS_OUTPUT.PUT_LINE('id='||v_id||' created_on='||TO_CHAR(v_created,'YYYY-MM-DD HH24:MI:SS'));
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (UPDATE RETURNING + SQL%ROWCOUNT): Add 200 credit to GB customers; show count and one value.
+-- Answer (commented):
+-- DECLARE
+--   v_after si_customers.credit_amt%TYPE;
+-- BEGIN
+--   UPDATE si_customers SET credit_amt = credit_amt + 200 WHERE country_iso='GB'
+--   RETURNING credit_amt INTO v_after;
+--   DBMS_OUTPUT.PUT_LINE('rows='||SQL%ROWCOUNT||' sample='||v_after);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (MERGE upsert): Upsert id=11 with name 'Zee', US, credit 600; print affected rows.
+-- Answer (commented):
+-- DECLARE v_rows NUMBER;
+-- BEGIN
+--   MERGE INTO si_customers t
+--   USING (SELECT 11 id, 'Zee' nm, 'US' iso, 600 cr FROM dual) s
+--      ON (t.cust_id = s.id)
+--   WHEN MATCHED THEN UPDATE SET t.credit_amt = t.credit_amt + 25
+--   WHEN NOT MATCHED THEN INSERT (cust_id, cust_name, country_iso, credit_amt)
+--        VALUES (s.id, s.nm, s.iso, s.cr);
+--   v_rows := SQL%ROWCOUNT;
+--   DBMS_OUTPUT.PUT_LINE('merge rows='||v_rows);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Explicit cursor): Parameterized cursor for a country code; print id/name/credit.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c(p_iso VARCHAR2) IS SELECT cust_id, cust_name, credit_amt FROM si_customers WHERE country_iso=p_iso ORDER BY cust_id;
+--   r c%ROWTYPE;
+-- BEGIN
+--   OPEN c('IN');
+--   LOOP
+--     FETCH c INTO r; EXIT WHEN c%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('id='||r.cust_id||' name='||r.cust_name||' credit='||r.credit_amt);
+--   END LOOP;
+--   CLOSE c;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Cursor FOR LOOP): Iterate customers with credit >= 500 using a FOR loop.
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (SELECT cust_id, cust_name, credit_amt FROM si_customers WHERE credit_amt >= 500 ORDER BY credit_amt DESC) LOOP
+--     DBMS_OUTPUT.PUT_LINE('id='||r.cust_id||' name='||r.cust_name||' credit='||r.credit_amt);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (%TYPE/%ROWTYPE): Declare a record using %ROWTYPE and print selected fields.
+-- Answer (commented):
+-- DECLARE
+--   v_row si_customers%ROWTYPE;
+-- BEGIN
+--   SELECT * INTO v_row FROM si_customers WHERE cust_id=1;
+--   DBMS_OUTPUT.PUT_LINE('row: '||v_row.cust_id||' '||v_row.cust_name||' '||v_row.credit_amt);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Scalar subquery): Use a scalar subquery in DBMS_OUTPUT expression.
+-- Answer (commented):
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE('country for id=2 -> '|| (SELECT country_iso FROM si_customers WHERE cust_id=2));
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (SQL%FOUND/NOTFOUND): After an UPDATE, print SQL%FOUND/SQL%NOTFOUND.
+-- Answer (commented):
+-- DECLARE
+-- BEGIN
+--   UPDATE si_customers SET credit_amt = credit_amt + 1 WHERE cust_id = -999;
+--   DBMS_OUTPUT.PUT_LINE('found='||CASE WHEN SQL%FOUND THEN 'Y' ELSE 'N' END
+--                        ||' notfound='||CASE WHEN SQL%NOTFOUND THEN 'Y' ELSE 'N' END);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+-- End of Assignment
+--------------------------------------------------------------------------------
