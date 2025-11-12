@@ -1,0 +1,121 @@
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+--------------------------------------------------------------------------------
+-- Assignment: Session 065 – Nested Record Structures
+-- Format:
+--   • 10 detailed tasks with complete solutions provided as COMMENTED blocks.
+--   • To run a solution: copy the commented block and remove leading '--'.
+-- Guidance:
+--   • Prefer constructor + validator for complex records.
+--   • Keep nested collection population centralized in loader procedures.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q1 (Define basics): Create t_contact and t_customer_public and print a sample.
+-- Answer (commented):
+-- DECLARE TYPE t_contact IS RECORD(email rt_customers.email%TYPE, created_at DATE);
+-- TYPE t_customer_public IS RECORD(id rt_customers.customer_id%TYPE, name rt_customers.full_name%TYPE, contact t_contact, active rt_customers.is_active%TYPE);
+-- v t_customer_public; BEGIN v.id:=1; v.name:='Avi'; v.contact.email:='avi@example.com'; v.active:='Y';
+-- DBMS_OUTPUT.PUT_LINE(v.id||' '||v.name||' '||v.active); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Order line): Define t_order_line and instantiate two entries in an associative array.
+-- Answer (commented):
+-- DECLARE TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER; v t_order_lines;
+-- BEGIN v(1).order_id:=1001; v(1).item:='SSD'; v(1).qty:=1; v(1).unit_price:=6500; v(1).status:='NEW'; v(1).created_at:=SYSDATE-5;
+-- v(2).order_id:=1003; v(2).item:='Hub'; v(2).qty:=2; v(2).unit_price:=1200; v(2).status:='NEW'; v(2).created_at:=SYSDATE-1;
+-- DBMS_OUTPUT.PUT_LINE('count='||v.COUNT); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Profile RECORD): Create t_customer_profile with orders collection and derived stats.
+-- Answer (commented):
+-- DECLARE TYPE t_contact IS RECORD(email rt_customers.email%TYPE, created_at DATE);
+-- TYPE t_customer_public IS RECORD(id rt_customers.customer_id%TYPE, name rt_customers.full_name%TYPE, contact t_contact, active rt_customers.is_active%TYPE);
+-- TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER;
+-- TYPE t_customer_profile IS RECORD(info t_customer_public, orders t_order_lines, order_count PLS_INTEGER, total_amount NUMBER, last_order_at DATE);
+-- v t_customer_profile; BEGIN v.info.id:=1; v.info.name:='Avi'; v.order_count:=0; v.total_amount:=0; DBMS_OUTPUT.PUT_LINE('ok'); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Loader): Implement load_profile(p_customer_id, p_out) populating nested orders.
+-- Answer (commented):
+-- DECLARE TYPE t_contact IS RECORD(email rt_customers.email%TYPE, created_at DATE);
+-- TYPE t_customer_public IS RECORD(id rt_customers.customer_id%TYPE, name rt_customers.full_name%TYPE, contact t_contact, active rt_customers.is_active%TYPE);
+-- TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER;
+-- TYPE t_customer_profile IS RECORD(info t_customer_public, orders t_order_lines, order_count PLS_INTEGER, total_amount NUMBER, last_order_at DATE);
+-- PROCEDURE load_profile(p_id IN rt_customers.customer_id%TYPE, p_out OUT t_customer_profile) IS i PLS_INTEGER:=0; BEGIN
+--   SELECT customer_id, full_name, email, created_at, is_active INTO p_out.info.id, p_out.info.name, p_out.info.contact.email, p_out.info.contact.created_at, p_out.info.active FROM rt_customers WHERE customer_id=p_id;
+--   FOR r IN (SELECT order_id,item_name,qty,unit_price,status,created_at FROM rt_orders WHERE customer_id=p_id ORDER BY created_at) LOOP
+--     i:=i+1; p_out.orders(i).order_id:=r.order_id; p_out.orders(i).item:=r.item_name; p_out.orders(i).qty:=r.qty; p_out.orders(i).unit_price:=r.unit_price; p_out.orders(i).status:=r.status; p_out.orders(i).created_at:=r.created_at;
+--   END LOOP;
+--   p_out.order_count:=p_out.orders.COUNT; p_out.total_amount:=0; IF p_out.order_count>0 THEN FOR j IN p_out.orders.FIRST..p_out.orders.LAST LOOP IF p_out.orders.EXISTS(j) THEN p_out.total_amount:=p_out.total_amount+NVL(p_out.orders(j).qty,0)*NVL(p_out.orders(j).unit_price,0); END IF; END LOOP; END IF;
+-- END; v t_customer_profile; BEGIN load_profile(1, v); DBMS_OUTPUT.PUT_LINE('cnt='||v.order_count||' total='||v.total_amount); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Serializer): Write serialize(profile) returning compact text and print.
+-- Answer (commented):
+-- DECLARE TYPE t_contact IS RECORD(email rt_customers.email%TYPE, created_at DATE);
+-- TYPE t_customer_public IS RECORD(id rt_customers.customer_id%TYPE, name rt_customers.full_name%TYPE, contact t_contact, active rt_customers.is_active%TYPE);
+-- TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER;
+-- TYPE t_customer_profile IS RECORD(info t_customer_public, orders t_order_lines, order_count PLS_INTEGER, total_amount NUMBER, last_order_at DATE);
+-- FUNCTION serialize(p t_customer_profile) RETURN VARCHAR2 IS BEGIN RETURN 'id='||p.info.id||';name='||p.info.name||';orders='||p.order_count||';total='||p.total_amount; END;
+-- v t_customer_profile; BEGIN v.info.id:=1; v.info.name:='Avi'; v.order_count:=2; v.total_amount:=8900; DBMS_OUTPUT.PUT_LINE(serialize(v)); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Mutate via IN OUT): Write add_order(p IN OUT profile, line IN t_order_line) and demo.
+-- Answer (commented):
+-- DECLARE TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER;
+-- TYPE t_contact IS RECORD(email rt_customers.email%TYPE, created_at DATE);
+-- TYPE t_customer_public IS RECORD(id rt_customers.customer_id%TYPE, name rt_customers.full_name%TYPE, contact t_contact, active rt_customers.is_active%TYPE);
+-- TYPE t_customer_profile IS RECORD(info t_customer_public, orders t_order_lines, order_count PLS_INTEGER, total_amount NUMBER, last_order_at DATE);
+-- PROCEDURE add_order(p IN OUT t_customer_profile, l IN t_order_line) IS n PLS_INTEGER; BEGIN n:=CASE WHEN p.orders.COUNT=0 THEN 1 ELSE p.orders.LAST+1 END; p.orders(n):=l; p.order_count:=p.orders.COUNT; p.total_amount:=NVL(p.total_amount,0)+NVL(l.qty,0)*NVL(l.unit_price,0); END;
+-- v t_customer_profile; l t_order_line; BEGIN v.info.id:=2; v.info.name:='Neha'; l.order_id:=4001; l.item:='Cable'; l.qty:=3; l.unit_price:=300; l.status:='NEW'; l.created_at:=SYSDATE; add_order(v,l); DBMS_OUTPUT.PUT_LINE(v.order_count||' '||v.total_amount); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Empty profiles): Build a profile for a customer with zero orders and print derived stats.
+-- Answer (commented):
+-- DECLARE TYPE t_contact IS RECORD(email rt_customers.email%TYPE, created_at DATE);
+-- TYPE t_customer_public IS RECORD(id rt_customers.customer_id%TYPE, name rt_customers.full_name%TYPE, contact t_contact, active rt_customers.is_active%TYPE);
+-- TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER;
+-- TYPE t_customer_profile IS RECORD(info t_customer_public, orders t_order_lines, order_count PLS_INTEGER, total_amount NUMBER, last_order_at DATE);
+-- v t_customer_profile; BEGIN v.info.id:=99; v.info.name:='New'; v.order_count:=v.orders.COUNT; v.total_amount:=0; DBMS_OUTPUT.PUT_LINE('cnt='||v.order_count||' total='||v.total_amount); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Validation): Write validate_profile ensuring active in ('Y','N') and non-negative totals.
+-- Answer (commented):
+-- DECLARE TYPE t_contact IS RECORD(email rt_customers.email%TYPE, created_at DATE);
+-- TYPE t_customer_public IS RECORD(id rt_customers.customer_id%TYPE, name rt_customers.full_name%TYPE, contact t_contact, active rt_customers.is_active%TYPE);
+-- TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER;
+-- TYPE t_customer_profile IS RECORD(info t_customer_public, orders t_order_lines, order_count PLS_INTEGER, total_amount NUMBER, last_order_at DATE);
+-- PROCEDURE validate_profile(p IN t_customer_profile) IS BEGIN IF p.info.active NOT IN ('Y','N') THEN RAISE_APPLICATION_ERROR(-20650,'bad active'); END IF; IF NVL(p.total_amount,0)<0 THEN RAISE_APPLICATION_ERROR(-20651,'negative total'); END IF; END;
+-- v t_customer_profile; BEGIN v.info.active:='Y'; v.total_amount:=0; validate_profile(v); DBMS_OUTPUT.PUT_LINE('ok'); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Projection to nested): Populate orders from a cursor with aliased columns.
+-- Answer (commented):
+-- DECLARE CURSOR c IS SELECT order_id oid, item_name itm, qty q, unit_price pr, status st, created_at ca FROM rt_orders WHERE customer_id=1 ORDER BY created_at;
+-- TYPE t_order_line IS RECORD(order_id rt_orders.order_id%TYPE, item rt_orders.item_name%TYPE, qty rt_orders.qty%TYPE, unit_price rt_orders.unit_price%TYPE, status rt_orders.status%TYPE, created_at DATE);
+-- TYPE t_order_lines IS TABLE OF t_order_line INDEX BY PLS_INTEGER;
+-- v t_order_lines; i PLS_INTEGER:=0; r c%ROWTYPE; BEGIN OPEN c; LOOP FETCH c INTO r; EXIT WHEN c%NOTFOUND; i:=i+1; v(i).order_id:=r.oid; v(i).item:=r.itm; v(i).qty:=r.q; v(i).unit_price:=r.pr; v(i).status:=r.st; v(i).created_at:=r.ca; END LOOP; CLOSE c; DBMS_OUTPUT.PUT_LINE('count='||v.COUNT); END; /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Design note): When would you prefer SQL nested tables over PL/SQL associative arrays?
+-- Answer (commented):
+-- -- When you need to persist collections in tables, join them in SQL, or pass them between SQL and PL/SQL across context boundaries. Associative arrays are PL/SQL-only and in-memory.
+--------------------------------------------------------------------------------
+
+-- End of Assignment
