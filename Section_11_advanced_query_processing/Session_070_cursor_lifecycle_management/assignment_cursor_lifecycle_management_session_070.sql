@@ -1,0 +1,35 @@
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+--------------------------------------------------------------------------------
+-- Assignment: Session 070 – Cursor Lifecycle Management
+-- 10 tasks with commented solutions.
+--------------------------------------------------------------------------------
+-- Q1 implicit attrs
+-- Answer:
+-- BEGIN UPDATE rt_orders SET qty=qty+1 WHERE status='NEW'; DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT); ROLLBACK; END; /
+-- Q2 explicit loop
+-- Answer:
+-- DECLARE CURSOR c IS SELECT order_id FROM rt_orders WHERE status='NEW'; v NUMBER; BEGIN OPEN c; LOOP FETCH c INTO v; EXIT WHEN c%NOTFOUND; DBMS_OUTPUT.PUT_LINE(v); END LOOP; CLOSE c; END; /
+-- Q3 parameterized
+-- Answer:
+-- DECLARE CURSOR c_by(p VARCHAR2) IS SELECT order_id FROM rt_orders WHERE status=p ORDER BY order_id; v NUMBER; BEGIN OPEN c_by('PAID'); LOOP FETCH c_by INTO v; EXIT WHEN c_by%NOTFOUND; DBMS_OUTPUT.PUT_LINE(v); END LOOP; CLOSE c_by; END; /
+-- Q4 FOR loop
+-- Answer:
+-- DECLARE CURSOR c IS SELECT order_id,item_name FROM rt_orders; BEGIN FOR r IN c LOOP DBMS_OUTPUT.PUT_LINE(r.order_id||' '||r.item_name); END LOOP; END; /
+-- Q5 strong ref
+-- Answer:
+-- DECLARE TYPE t_cur IS REF CURSOR RETURN rt_orders%ROWTYPE; FUNCTION f(p NUMBER) RETURN t_cur IS x t_cur; BEGIN OPEN x FOR SELECT * FROM rt_orders WHERE customer_id=p; RETURN x; END; c t_cur; r rt_orders%ROWTYPE; BEGIN c:=f(1); LOOP FETCH c INTO r; EXIT WHEN c%NOTFOUND; DBMS_OUTPUT.PUT_LINE(r.order_id); END LOOP; CLOSE c; END; /
+-- Q6 weak ref
+-- Answer:
+-- DECLARE TYPE t_any IS REF CURSOR; c t_any; v NUMBER; s VARCHAR2(100); BEGIN OPEN c FOR 'SELECT order_id,item_name FROM rt_orders WHERE status=:x' USING 'NEW'; LOOP FETCH c INTO v,s; EXIT WHEN c%NOTFOUND; DBMS_OUTPUT.PUT_LINE(v||' '||s); END LOOP; CLOSE c; END; /
+-- Q7 %ROWCOUNT growth
+-- Answer:
+-- DECLARE CURSOR c IS SELECT order_id FROM rt_orders WHERE status='NEW'; v NUMBER; BEGIN OPEN c; LOOP FETCH c INTO v; EXIT WHEN c%NOTFOUND; DBMS_OUTPUT.PUT_LINE(c%ROWCOUNT); END LOOP; CLOSE c; END; /
+-- Q8 close on error
+-- Answer:
+-- DECLARE CURSOR c IS SELECT order_id,unit_price FROM rt_orders; v NUMBER; p NUMBER; BEGIN OPEN c; BEGIN LOOP FETCH c INTO v,p; EXIT WHEN c%NOTFOUND; IF p<0 THEN RAISE_APPLICATION_ERROR(-20000,'neg'); END IF; END LOOP; EXCEPTION WHEN OTHERS THEN DBMS_OUTPUT.PUT_LINE(SQLERRM); END; IF c%ISOPEN THEN CLOSE c; END IF; END; /
+-- Q9 print_by_status
+-- Answer:
+-- DECLARE PROCEDURE print_by_status(p VARCHAR2) IS BEGIN FOR r IN (SELECT order_id,item_name FROM rt_orders WHERE status=p ORDER BY order_id) LOOP DBMS_OUTPUT.PUT_LINE(r.order_id||' '||r.item_name); END LOOP; END; BEGIN print_by_status('PAID'); END; /
+-- Q10 design note
+-- Answer:
+-- -- Use REF CURSOR to stream results to external consumers; collections for small sets when you need in-PGA manipulation.
