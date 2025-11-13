@@ -1,0 +1,206 @@
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+--------------------------------------------------------------------------------
+-- Assignment: Session 075 – Simplified FOR Loop Processing
+-- Format:
+--   • 10 questions, each with a complete solution in commented PL/SQL blocks.
+--   • To run a solution: copy the commented block and remove leading '--'.
+-- Guidance:
+--   • Cursor FOR loops automatically handle OPEN–FETCH–CLOSE for you.
+--   • Use inline queries for simple cases; named cursors for reuse.
+--   • Prefer FOR loops for read-only traversal of result sets.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q1 (Basic FOR loop): Print all order_id values from rt_orders using a
+--    cursor FOR loop over an inline SELECT.
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (SELECT order_id FROM rt_orders ORDER BY order_id)
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE('order_id='||r.order_id);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Multiple columns): Using a cursor FOR loop, print order_id, item_name,
+--    and status from rt_orders.
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (
+--     SELECT order_id, item_name, status
+--     FROM   rt_orders
+--     ORDER  BY order_id
+--   )
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE(
+--       'order_id='||r.order_id||' item='||r.item_name||' status='||r.status
+--     );
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Join in FOR loop): Join rt_orders and rt_customers and print
+--    "<full_name> -> <order_id>: <item_name>".
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (
+--     SELECT c.full_name, o.order_id, o.item_name
+--     FROM   rt_orders    o
+--     JOIN   rt_customers c ON c.customer_id = o.customer_id
+--     ORDER  BY o.order_id
+--   )
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE(
+--       r.full_name||' -> '||r.order_id||': '||r.item_name
+--     );
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Filtered FOR loop): Show only NEW orders in a cursor FOR loop and print
+--    order_id, item_name, and unit_price.
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (
+--     SELECT order_id, item_name, unit_price
+--     FROM   rt_orders
+--     WHERE  status = 'NEW'
+--     ORDER  BY order_id
+--   )
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE(
+--       'NEW order '||r.order_id||' -> '||r.item_name||
+--       ' amount='||r.unit_price
+--     );
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Computed column): Using a FOR loop, compute total_amount
+--    (qty * unit_price) and print it for each order.
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (
+--     SELECT order_id,
+--            item_name,
+--            qty,
+--            unit_price,
+--            (qty * unit_price) AS total_amount
+--     FROM   rt_orders
+--     ORDER  BY order_id
+--   )
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE(
+--       'order '||r.order_id||' '||r.item_name||
+--       ' qty='||r.qty||' unit='||r.unit_price||
+--       ' total='||r.total_amount
+--     );
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Named cursor in FOR loop): Declare a named cursor c_paid for PAID
+--    orders and iterate it using FOR c_rec IN c_paid LOOP.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_paid IS
+--     SELECT order_id, item_name, unit_price
+--     FROM   rt_orders
+--     WHERE  status = 'PAID'
+--     ORDER  BY order_id;
+-- BEGIN
+--   FOR c_rec IN c_paid
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE(
+--       'PAID '||c_rec.order_id||' -> '||c_rec.item_name||
+--       ' amount='||c_rec.unit_price
+--     );
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Filter by PL/SQL variable): Declare p_status and use it inside an
+--    inline query in a FOR loop to list only matching rows.
+-- Answer (commented):
+-- DECLARE
+--   p_status rt_orders.status%TYPE := 'NEW';
+-- BEGIN
+--   FOR r IN (
+--     SELECT order_id, item_name, status
+--     FROM   rt_orders
+--     WHERE  status = p_status
+--     ORDER  BY order_id
+--   )
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE(
+--       'status='||r.status||' order_id='||r.order_id||' item='||r.item_name
+--     );
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Nested FOR loops): Outer loop over rt_customers, inner loop over their
+--    orders, printing a grouped report.
+-- Answer (commented):
+-- BEGIN
+--   FOR c IN (
+--     SELECT customer_id, full_name
+--     FROM   rt_customers
+--     ORDER  BY customer_id
+--   )
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE('Customer: '||c.full_name);
+--     FOR o IN (
+--       SELECT order_id, item_name, status
+--       FROM   rt_orders
+--       WHERE  customer_id = c.customer_id
+--       ORDER  BY order_id
+--     )
+--     LOOP
+--       DBMS_OUTPUT.PUT_LINE(
+--         '  order '||o.order_id||': '||o.item_name||' ('||o.status||')'
+--       );
+--     END LOOP;
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Design question): Describe two benefits of using cursor FOR loops
+--    instead of manual OPEN–FETCH–CLOSE explicit cursor code.
+-- Answer (commented):
+-- -- Benefits:
+-- --   1) Less boilerplate: the FOR loop automatically OPENs, FETCHes,
+-- --      and CLOSEs the cursor, reducing the chance of forgetting to CLOSE.
+-- --   2) Readability: the loop logic focuses on what to do per row, not on
+-- --      cursor lifecycle mechanics, making code easier to understand and review.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Design question): Give an example scenario where you would NOT use a
+--      cursor FOR loop and instead choose an explicit cursor.
+-- Answer (commented):
+-- -- Example scenario:
+-- --   You need row-by-row updates using WHERE CURRENT OF with a FOR UPDATE
+-- --   cursor, and you must inspect cursor attributes after the loop (such as
+-- --   %ROWCOUNT) in a way that a FOR loop does not expose directly. In that
+-- --   case, an explicit cursor with manual OPEN–FETCH–CLOSE is more appropriate.
+--------------------------------------------------------------------------------
+
+-- End of Assignment
+--------------------------------------------------------------------------------
