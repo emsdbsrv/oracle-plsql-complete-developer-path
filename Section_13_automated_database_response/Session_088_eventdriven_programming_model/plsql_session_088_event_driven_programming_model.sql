@@ -1,0 +1,224 @@
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+--------------------------------------------------------------------------------
+-- Session 088 – Event-Driven Programming Model
+-- Purpose:
+--   Demonstrate how PL/SQL triggers implement an event-driven programming model
+--   in the database. Each trigger is attached to a specific event:
+--     • DML events (INSERT, UPDATE, DELETE)
+--     • DDL events (CREATE, ALTER, DROP)
+--     • System events (LOGON, LOGOFF, STARTUP, SHUTDOWN)
+--   This script assumes the schema objects from Session 087 (tg_employees, etc.)
+--   already exist. Every example is heavily commented to explain purpose,
+--   firing point, and observed behavior.
+--------------------------------------------------------------------------------
+
+
+/******************************************************************************
+ Example 1 – BEFORE INSERT row-level trigger
+ Event:
+   BEFORE INSERT ON tg_employees FOR EACH ROW
+ Purpose:
+   Automatically set created_on and enforce minimum salary at insert time.
+******************************************************************************/
+CREATE OR REPLACE TRIGGER trg_emp_bi_set_defaults
+BEFORE INSERT ON tg_employees
+FOR EACH ROW
+BEGIN
+  -- Ensure created_on is always set by the trigger if caller leaves it NULL
+  IF :NEW.created_on IS NULL THEN
+    :NEW.created_on := SYSDATE;
+  END IF;
+
+  -- Enforce a minimum salary rule at the moment of insertion
+  IF :NEW.salary < 20000 THEN
+    :NEW.salary := 20000;
+  END IF;
+END;
+/
+--------------------------------------------------------------------------------
+
+
+/******************************************************************************
+ Example 2 – AFTER UPDATE row-level trigger (audit salary changes)
+ Event:
+   AFTER UPDATE OF salary ON tg_employees FOR EACH ROW
+ Purpose:
+   When salary changes, insert a row into tg_employees_audit capturing:
+     • old_salary and new_salary
+     • action_type = 'UPDATE'
+     • action_by   = current database user
+     • action_date = current time
+******************************************************************************/
+CREATE OR REPLACE TRIGGER trg_emp_au_audit_salary
+AFTER UPDATE OF salary ON tg_employees
+FOR EACH ROW
+WHEN (OLD.salary <> NEW.salary)
+BEGIN
+  INSERT INTO tg_employees_audit (
+      audit_id,
+      emp_id,
+      old_salary,
+      new_salary,
+      action_type,
+      action_by,
+      action_date
+  )
+  VALUES (
+      tg_emp_audit_seq.NEXTVAL,
+      :NEW.emp_id,
+      :OLD.salary,
+      :NEW.salary,
+      'UPDATE',
+      USER,
+      SYSDATE
+  );
+END;
+/
+--------------------------------------------------------------------------------
+
+
+/******************************************************************************
+ Example 3 – BEFORE DELETE row-level trigger (history archive)
+ Event:
+   BEFORE DELETE ON tg_employees FOR EACH ROW
+ Purpose:
+   Before an employee row is deleted, archive the old data into
+   tg_employees_history, capturing who deleted it and when.
+******************************************************************************/
+CREATE OR REPLACE TRIGGER trg_emp_bd_archive_row
+BEFORE DELETE ON tg_employees
+FOR EACH ROW
+BEGIN
+  INSERT INTO tg_employees_history (
+      hist_id,
+      emp_id,
+      old_name,
+      old_salary,
+      old_dept,
+      modified_on
+  )
+  VALUES (
+      :OLD.emp_id,           -- use emp_id as hist_id for simplicity
+      :OLD.emp_id,
+      :OLD.emp_name,
+      :OLD.salary,
+      :OLD.dept_id,
+      SYSDATE
+  );
+END;
+/
+--------------------------------------------------------------------------------
+
+
+/******************************************************************************
+ Example 4 – AFTER INSERT statement-level trigger
+ Event:
+   AFTER INSERT ON tg_employees
+ Purpose:
+   Fires once per INSERT statement (even if many rows inserted). Logs a
+   summary message via DBMS_OUTPUT to illustrate statement-level behavior.
+******************************************************************************/
+CREATE OR REPLACE TRIGGER trg_emp_ai_stmt_log
+AFTER INSERT ON tg_employees
+DECLARE
+  v_cnt PLS_INTEGER;
+BEGIN
+  -- Count how many rows now exist after the INSERT statement
+  SELECT COUNT(*) INTO v_cnt FROM tg_employees;
+  DBMS_OUTPUT.PUT_LINE('AFTER INSERT statement-level trigger fired; total rows='||v_cnt);
+END;
+/
+--------------------------------------------------------------------------------
+
+
+/******************************************************************************
+ Example 5 – Simple DDL trigger (schema-level, event-driven)
+ Event:
+   AFTER CREATE ON SCHEMA
+ Purpose:
+   When any object is created in this schema, record the event into a logging
+   table. This demonstrates a non-DML, DDL-based event-driven trigger.
+ Note:
+   Requires a logging table; if it does not exist, create one.
+******************************************************************************/
+-- Logging table for DDL events (create once)
+CREATE TABLE ddl_event_log (
+  log_id      NUMBER GENERATED BY DEFAULT AS IDENTITY,
+  username    VARCHAR2(30),
+  object_name VARCHAR2(128),
+  object_type VARCHAR2(30),
+  event_date  DATE
+);
+/
+
+-- DDL trigger
+CREATE OR REPLACE TRIGGER trg_ddl_after_create
+AFTER CREATE ON SCHEMA
+BEGIN
+  INSERT INTO ddl_event_log (username, object_name, object_type, event_date)
+  VALUES (SYS.LOGIN_USER, ORA_DICT_OBJ_NAME, ORA_DICT_OBJ_TYPE, SYSDATE);
+END;
+/
+--------------------------------------------------------------------------------
+
+
+/******************************************************************************
+ Example 6 – System event trigger: LOGON (per-session)
+ Event:
+   AFTER LOGON ON DATABASE
+ Purpose:
+   Logs each user logon event into a simple table. This is a system-level
+   event and shows that triggers are not only for DML.
+******************************************************************************/
+-- Logon log table (create once)
+CREATE TABLE logon_event_log (
+  log_id   NUMBER GENERATED BY DEFAULT AS IDENTITY,
+  username VARCHAR2(30),
+  logon_ts DATE
+);
+/
+
+CREATE OR REPLACE TRIGGER trg_sys_after_logon
+AFTER LOGON ON DATABASE
+BEGIN
+  INSERT INTO logon_event_log (username, logon_ts)
+  VALUES (SYS.LOGIN_USER, SYSDATE);
+END;
+/
+--------------------------------------------------------------------------------
+
+
+/******************************************************************************
+ Example 7 – Error-handling wrapper in DML trigger
+ Event:
+   AFTER UPDATE ON tg_employees
+ Purpose:
+   Demonstrate how a trigger can catch unexpected errors and route them to
+   the tg_error_log table instead of failing silently.
+******************************************************************************/
+CREATE OR REPLACE TRIGGER trg_emp_au_demo_error_handling
+AFTER UPDATE ON tg_employees
+FOR EACH ROW
+DECLARE
+  v_dummy NUMBER;
+BEGIN
+  BEGIN
+    -- Deliberate operation that might fail (divide by zero example)
+    v_dummy := 1 / 0;
+  EXCEPTION
+    WHEN OTHERS THEN
+      INSERT INTO tg_error_log (err_id, emp_id, err_message, created_on)
+      VALUES (
+        :NEW.emp_id,
+        :NEW.emp_id,
+        SQLERRM,
+        SYSDATE
+      );
+      -- Optionally, we could re-raise or swallow; here we swallow to let DML pass.
+  END;
+END;
+/
+--------------------------------------------------------------------------------
+
+-- End of Lesson for Session 088
+--------------------------------------------------------------------------------
