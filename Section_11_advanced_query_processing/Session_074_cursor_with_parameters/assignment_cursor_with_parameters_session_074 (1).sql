@@ -1,0 +1,259 @@
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+--------------------------------------------------------------------------------
+-- Assignment: Session 074 – Cursor with Parameters
+-- Format:
+--   • 10 questions, each followed by a complete solution in commented form.
+--   • To run a solution, copy the commented PL/SQL block and remove leading '--'.
+-- Guidance:
+--   • Always align SELECT list with INTO variables.
+--   • Name parameters descriptively (p_status, p_from_date, p_min_amount, etc.).
+--   • Keep cursor bodies focused and avoid mixing unrelated filters.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q1 (Single parameter): Write a cursor c_by_status(p_status) returning
+--    order_id and item_name for the given status, and print them.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_by_status(p_status rt_orders.status%TYPE) IS
+--     SELECT order_id, item_name
+--     FROM   rt_orders
+--     WHERE  status = p_status
+--     ORDER  BY order_id;
+--   v_id   rt_orders.order_id%TYPE;
+--   v_item rt_orders.item_name%TYPE;
+-- BEGIN
+--   OPEN c_by_status('NEW');
+--   LOOP
+--     FETCH c_by_status INTO v_id, v_item;
+--     EXIT WHEN c_by_status%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('NEW '||v_id||' -> '||v_item);
+--   END LOOP;
+--   CLOSE c_by_status;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Two-parameter): Define c_status_amount(p_status, p_min_amount) that
+--    returns order_id, unit_price, and iterate it for 'PAID' with 5000.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_status_amount(
+--     p_status     rt_orders.status%TYPE,
+--     p_min_amount rt_orders.unit_price%TYPE
+--   ) IS
+--     SELECT order_id, unit_price
+--     FROM   rt_orders
+--     WHERE  status = p_status
+--     AND    unit_price >= p_min_amount
+--     ORDER  BY order_id;
+--   v_id  rt_orders.order_id%TYPE;
+--   v_amt rt_orders.unit_price%TYPE;
+-- BEGIN
+--   OPEN c_status_amount('PAID', 5000);
+--   LOOP
+--     FETCH c_status_amount INTO v_id, v_amt;
+--     EXIT WHEN c_status_amount%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('PAID '||v_id||' amt='||v_amt);
+--   END LOOP;
+--   CLOSE c_status_amount;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Date range): Create c_orders_period(p_customer_id, p_from, p_to) and
+--    print order_id and created_at for that window.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_orders_period(
+--     p_customer_id rt_orders.customer_id%TYPE,
+--     p_from_date   DATE,
+--     p_to_date     DATE
+--   ) IS
+--     SELECT order_id, created_at
+--     FROM   rt_orders
+--     WHERE  customer_id = p_customer_id
+--     AND    TRUNC(created_at) BETWEEN TRUNC(p_from_date) AND TRUNC(p_to_date)
+--     ORDER  BY created_at;
+--   v_id   rt_orders.order_id%TYPE;
+--   v_date rt_orders.created_at%TYPE;
+-- BEGIN
+--   OPEN c_orders_period(1, SYSDATE-30, SYSDATE);
+--   LOOP
+--     FETCH c_orders_period INTO v_id, v_date;
+--     EXIT WHEN c_orders_period%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('id='||v_id||' dt='||TO_CHAR(v_date,'YYYY-MM-DD'));
+--   END LOOP;
+--   CLOSE c_orders_period;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (Join with parameter): Build c_customer_orders(p_customer_id) which joins
+--    rt_customers and rt_orders and prints "<name> -> <item> (<status>)".
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_customer_orders(p_customer_id rt_customers.customer_id%TYPE) IS
+--     SELECT c.full_name, o.item_name, o.status
+--     FROM   rt_customers c
+--     JOIN   rt_orders    o ON o.customer_id = c.customer_id
+--     WHERE  c.customer_id = p_customer_id
+--     ORDER  BY o.order_id;
+--   v_name rt_customers.full_name%TYPE;
+--   v_item rt_orders.item_name%TYPE;
+--   v_stat rt_orders.status%TYPE;
+-- BEGIN
+--   OPEN c_customer_orders(1);
+--   LOOP
+--     FETCH c_customer_orders INTO v_name, v_item, v_stat;
+--     EXIT WHEN c_customer_orders%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE(v_name||' -> '||v_item||' ('||v_stat||')');
+--   END LOOP;
+--   CLOSE c_customer_orders;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Mode parameter): Write c_customers_by_flag(p_flag) where p_flag = 'A'
+--    returns active customers, 'I' returns inactive.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_customers_by_flag(p_flag CHAR) IS
+--     SELECT customer_id, full_name, is_active
+--     FROM   rt_customers
+--     WHERE  (p_flag = 'A' AND is_active = 'Y')
+--        OR  (p_flag = 'I' AND is_active = 'N')
+--     ORDER  BY customer_id;
+--   v_id   rt_customers.customer_id%TYPE;
+--   v_name rt_customers.full_name%TYPE;
+--   v_act  rt_customers.is_active%TYPE;
+-- BEGIN
+--   OPEN c_customers_by_flag('A');
+--   LOOP
+--     FETCH c_customers_by_flag INTO v_id, v_name, v_act;
+--     EXIT WHEN c_customers_by_flag%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('Active '||v_id||' '||v_name||' flag='||v_act);
+--   END LOOP;
+--   CLOSE c_customers_by_flag;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Reusability): Use a parameterized cursor inside a procedure
+--    show_orders_for_status(p_status, p_min_amount) similar to the lesson.
+-- Answer (commented):
+-- DECLARE
+--   PROCEDURE show_orders_for_status(
+--     p_status     IN rt_orders.status%TYPE,
+--     p_min_amount IN rt_orders.unit_price%TYPE
+--   ) IS
+--     CURSOR c_orders IS
+--       SELECT order_id, item_name, unit_price
+--       FROM   rt_orders
+--       WHERE  status = p_status
+--       AND    unit_price >= p_min_amount
+--       ORDER  BY order_id;
+--     v_id   rt_orders.order_id%TYPE;
+--     v_item rt_orders.item_name%TYPE;
+--     v_amt  rt_orders.unit_price%TYPE;
+--   BEGIN
+--     OPEN c_orders;
+--     LOOP
+--       FETCH c_orders INTO v_id, v_item, v_amt;
+--       EXIT WHEN c_orders%NOTFOUND;
+--       DBMS_OUTPUT.PUT_LINE(p_status||' '||v_id||' '||v_item||' amt='||v_amt);
+--     END LOOP;
+--     CLOSE c_orders;
+--   END show_orders_for_status;
+-- BEGIN
+--   show_orders_for_status('NEW', 500);
+--   show_orders_for_status('PAID', 10000);
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Zero rows case): With c_by_status(p_status), show what happens when
+--    you pass a status that does not exist (for example 'UNKNOWN').
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_by_status(p_status rt_orders.status%TYPE) IS
+--     SELECT order_id FROM rt_orders WHERE status = p_status ORDER BY order_id;
+--   v_id rt_orders.order_id%TYPE;
+-- BEGIN
+--   OPEN c_by_status('UNKNOWN');
+--   LOOP
+--     FETCH c_by_status INTO v_id;
+--     EXIT WHEN c_by_status%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('id='||v_id);
+--   END LOOP;
+--   CLOSE c_by_status;
+--   -- If no rows matched, loop body never runs and nothing is printed.
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Parameter validation): Add a simple validation so that c_customers_by_flag
+--    raises an error if p_flag is neither 'A' nor 'I'.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_customers_by_flag(p_flag CHAR) IS
+--     SELECT customer_id, full_name, is_active
+--     FROM   rt_customers
+--     WHERE  (p_flag = 'A' AND is_active = 'Y')
+--        OR  (p_flag = 'I' AND is_active = 'N')
+--     ORDER  BY customer_id;
+--   v_id   rt_customers.customer_id%TYPE;
+--   v_name rt_customers.full_name%TYPE;
+--   v_act  rt_customers.is_active%TYPE;
+--   PROCEDURE list_customers(p_flag CHAR) IS
+--   BEGIN
+--     IF p_flag NOT IN ('A','I') THEN
+--       RAISE_APPLICATION_ERROR(-20500,'p_flag must be A or I');
+--     END IF;
+--     OPEN c_customers_by_flag(p_flag);
+--     LOOP
+--       FETCH c_customers_by_flag INTO v_id, v_name, v_act;
+--       EXIT WHEN c_customers_by_flag%NOTFOUND;
+--       DBMS_OUTPUT.PUT_LINE('id='||v_id||' '||v_name||' flag='||v_act);
+--     END LOOP;
+--     CLOSE c_customers_by_flag;
+--   END;
+-- BEGIN
+--   list_customers('A');
+--   -- list_customers('X'); -- would raise validation error
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Design question): List two advantages of parameterized cursors over
+--    hard-coded filters inside multiple separate cursor definitions.
+-- Answer (commented):
+-- -- Advantages:
+-- --   1) Reuse: One cursor definition can serve many filter combinations,
+-- --      which reduces code duplication and simplifies maintenance.
+-- --   2) Flexibility: Callers can control filters at runtime without changing
+-- --      the PL/SQL code, making procedures more configurable.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Design question): When might you prefer a parameterized cursor over
+--      building dynamic SQL with a REF CURSOR?
+-- Answer (commented):
+-- -- Prefer a parameterized explicit cursor when:
+-- --   • The query structure is stable and only literal values change.
+-- --   • You want compile-time validation of the SELECT statement.
+-- --   • You do not need to dynamically add or remove columns or tables.
+-- -- Dynamic SQL with REF CURSOR is more appropriate when the FROM/WHERE/ORDER
+-- -- clauses themselves must be constructed at runtime.
+--------------------------------------------------------------------------------
+
+-- End of Assignment
+--------------------------------------------------------------------------------

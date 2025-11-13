@@ -1,0 +1,240 @@
+SET SERVEROUTPUT ON SIZE UNLIMITED;
+--------------------------------------------------------------------------------
+-- Assignment: Session 073 – OPEN–FETCH–CLOSE Pattern
+-- Format:
+--   • 10 questions with complete solutions written as COMMENTED PL/SQL blocks.
+--   • To run a solution: copy the commented block and remove leading '--'.
+-- Guidance:
+--   • Always CLOSE explicit cursors and REF CURSORs when done.
+--   • Ensure SELECT lists and INTO variables align exactly.
+--   • Decide explicitly who owns/Closes REF CURSORs when passed between layers.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q1 (Basic lifecycle): Declare a static cursor over NEW orders and print
+--    order_id and item_name using OPEN–FETCH–EXIT–CLOSE.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c IS
+--     SELECT order_id, item_name
+--     FROM   rt_orders
+--     WHERE  status='NEW'
+--     ORDER  BY order_id;
+--   v_id   rt_orders.order_id%TYPE;
+--   v_item rt_orders.item_name%TYPE;
+-- BEGIN
+--   OPEN c;
+--   LOOP
+--     FETCH c INTO v_id, v_item;
+--     EXIT WHEN c%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('NEW '||v_id||' -> '||v_item);
+--   END LOOP;
+--   CLOSE c;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q2 (Row counting): Using an explicit cursor, print the row number along
+--    with order_id for all orders.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c IS SELECT order_id FROM rt_orders ORDER BY order_id;
+--   v_id rt_orders.order_id%TYPE;
+-- BEGIN
+--   OPEN c;
+--   LOOP
+--     FETCH c INTO v_id;
+--     EXIT WHEN c%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('#'||c%ROWCOUNT||' -> '||v_id);
+--   END LOOP;
+--   CLOSE c;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q3 (Status filter): Create a parameterized explicit cursor c_by_status(p)
+--    and iterate once for 'PAID', once for 'NEW'.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c_by_status(p rt_orders.status%TYPE) IS
+--     SELECT order_id, status
+--     FROM   rt_orders
+--     WHERE  status = p
+--     ORDER  BY order_id;
+--   v_id   rt_orders.order_id%TYPE;
+--   v_stat rt_orders.status%TYPE;
+-- BEGIN
+--   OPEN c_by_status('PAID');
+--   LOOP
+--     FETCH c_by_status INTO v_id, v_stat;
+--     EXIT WHEN c_by_status%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('[PAID] '||v_id||' ('||v_stat||')');
+--   END LOOP;
+--   CLOSE c_by_status;
+--
+--   OPEN c_by_status('NEW');
+--   LOOP
+--     FETCH c_by_status INTO v_id, v_stat;
+--     EXIT WHEN c_by_status%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('[NEW] '||v_id||' ('||v_stat||')');
+--   END LOOP;
+--   CLOSE c_by_status;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q4 (REF CURSOR basics): Using SYS_REFCURSOR, open a cursor for all PAID
+--    orders and print order_id and unit_price using FETCH..EXIT..CLOSE.
+-- Answer (commented):
+-- DECLARE
+--   v_rc    SYS_REFCURSOR;
+--   v_id    rt_orders.order_id%TYPE;
+--   v_price rt_orders.unit_price%TYPE;
+-- BEGIN
+--   OPEN v_rc FOR
+--     SELECT order_id, unit_price
+--     FROM   rt_orders
+--     WHERE  status='PAID'
+--     ORDER  BY order_id;
+--
+--   LOOP
+--     FETCH v_rc INTO v_id, v_price;
+--     EXIT WHEN v_rc%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('PAID '||v_id||' price='||v_price);
+--   END LOOP;
+--   CLOSE v_rc;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q5 (Dynamic WHERE): Build a dynamic SQL where the status and minimum amount
+--    are parameters, then OPEN a SYS_REFCURSOR FOR that query and FETCH rows.
+-- Answer (commented):
+-- DECLARE
+--   v_rc        SYS_REFCURSOR;
+--   v_sql       VARCHAR2(4000);
+--   v_status    rt_orders.status%TYPE := 'NEW';
+--   v_min_price rt_orders.unit_price%TYPE := 1000;
+--   v_id        rt_orders.order_id%TYPE;
+--   v_item      rt_orders.item_name%TYPE;
+-- BEGIN
+--   v_sql := 'SELECT order_id, item_name FROM rt_orders ' ||
+--            'WHERE status = :b1 AND unit_price >= :b2 '  ||
+--            'ORDER BY order_id';
+--
+--   OPEN v_rc FOR v_sql USING v_status, v_min_price;
+--   LOOP
+--     FETCH v_rc INTO v_id, v_item;
+--     EXIT WHEN v_rc%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('dyn '||v_id||' -> '||v_item);
+--   END LOOP;
+--   CLOSE v_rc;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q6 (Helper procedure): Write a procedure get_paid_orders(p_rc OUT SYS_REFCURSOR)
+--    that returns a REF CURSOR over PAID orders. Call it and FETCH results.
+-- Answer (commented):
+-- DECLARE
+--   PROCEDURE get_paid_orders(p_rc OUT SYS_REFCURSOR) IS
+--   BEGIN
+--     OPEN p_rc FOR
+--       SELECT order_id, item_name, unit_price
+--       FROM   rt_orders
+--       WHERE  status='PAID'
+--       ORDER  BY order_id;
+--   END get_paid_orders;
+--
+--   v_rc   SYS_REFCURSOR;
+--   v_id   rt_orders.order_id%TYPE;
+--   v_item rt_orders.item_name%TYPE;
+--   v_amt  rt_orders.unit_price%TYPE;
+-- BEGIN
+--   get_paid_orders(v_rc);
+--   LOOP
+--     FETCH v_rc INTO v_id, v_item, v_amt;
+--     EXIT WHEN v_rc%NOTFOUND;
+--     DBMS_OUTPUT.PUT_LINE('paid '||v_id||' '||v_item||' amt='||v_amt);
+--   END LOOP;
+--   CLOSE v_rc;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q7 (Exception-safe explicit cursor): Intentionally raise an exception inside
+--    a FETCH loop and still close the cursor.
+-- Answer (commented):
+-- DECLARE
+--   CURSOR c IS SELECT order_id, unit_price FROM rt_orders ORDER BY order_id;
+--   v_id rt_orders.order_id%TYPE;
+--   v_amt rt_orders.unit_price%TYPE;
+-- BEGIN
+--   OPEN c;
+--   BEGIN
+--     LOOP
+--       FETCH c INTO v_id, v_amt;
+--       EXIT WHEN c%NOTFOUND;
+--       IF v_amt > 100000 THEN
+--         RAISE_APPLICATION_ERROR(-20100,'amount too high for demo');
+--       END IF;
+--       DBMS_OUTPUT.PUT_LINE('ok '||v_id||' amt='||v_amt);
+--     END LOOP;
+--   EXCEPTION
+--     WHEN OTHERS THEN
+--       DBMS_OUTPUT.PUT_LINE('caught: '||SQLERRM);
+--   END;
+--   IF c%ISOPEN THEN
+--     CLOSE c;
+--   END IF;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q8 (Cursor FOR loop re-write): Take the explicit cursor from Q1 and rewrite
+--    it as a cursor FOR loop without manual OPEN/FETCH/CLOSE.
+-- Answer (commented):
+-- BEGIN
+--   FOR r IN (SELECT order_id, item_name
+--             FROM   rt_orders
+--             WHERE  status='NEW'
+--             ORDER  BY order_id)
+--   LOOP
+--     DBMS_OUTPUT.PUT_LINE('NEW '||r.order_id||' -> '||r.item_name);
+--   END LOOP;
+-- END;
+-- /
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q9 (Ownership question): Suppose a procedure returns a SYS_REFCURSOR. Who
+--    should CLOSE it and why?
+-- Answer (commented):
+-- -- The caller who receives the SYS_REFCURSOR should CLOSE it, because the
+-- -- caller controls the fetch lifecycle and knows when it is done reading.
+-- -- The producer (the called procedure) only OPENs the cursor; closing it there
+-- -- would make it unusable for the caller.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Q10 (Design): Name two risks of forgetting to close cursors and how to
+--      mitigate them.
+-- Answer (commented):
+-- -- Risks:
+-- --   1) Resource leaks: open cursors consume PGA and shared resources, and
+-- --      long-running sessions may hit ORA-01000 (maximum open cursors exceeded).
+-- --   2) Locks held: FOR UPDATE cursors may leave row locks open, blocking
+-- --      other sessions until commit/rollback.
+-- -- Mitigations:
+-- --   • Always CLOSE cursors in normal and exception paths (IF c%ISOPEN THEN CLOSE c; END IF;).
+-- --   • Encapsulate OPEN–FETCH–CLOSE patterns inside well-tested helper procedures.
+--------------------------------------------------------------------------------
+
+-- End of Assignment
