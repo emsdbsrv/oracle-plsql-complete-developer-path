@@ -1,151 +1,144 @@
--- Script: assignment_constants_and_literals.sql
--- Session: 018 - Constants and Literals
--- Instructions:
---   • 10 questions with detailed prompts and commented answers.
---   • To run an answer, copy it below the question and remove leading '--'.
+-- assignment_constants_and_literals.sql
+-- Session : 018_constants_and_literals
+-- Topic   : Practice - Constants and Literals
 
 SET SERVEROUTPUT ON;
 
 --------------------------------------------------------------------------------
--- Q1 (Basics): Declare a numeric CONSTANT c_rate := 0.12 and compute total for price 850.
--- Answer (commented):
--- DECLARE
---   c_rate CONSTANT NUMBER := 0.12;
---   v_price NUMBER := 850;
--- BEGIN
---   DBMS_OUTPUT.PUT_LINE('Total = ' || (v_price + v_price*c_rate));
--- END;
--- /
+-- Assignment 1: Define constant for application version
+--------------------------------------------------------------------------------
+DECLARE
+  c_app_version CONSTANT VARCHAR2(10) := 'v1.0';
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('A1: Application Version = ' || c_app_version);
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q2 (Literals): Use DATE and TIMESTAMP literals to print '06-NOV-2025' and '06-NOV-2025 18:00:00'.
--- Answer (commented):
--- DECLARE
---   d  DATE      := DATE '2025-11-06';
---   ts TIMESTAMP := TIMESTAMP '2025-11-06 18:00:00';
--- BEGIN
---   DBMS_OUTPUT.PUT_LINE(TO_CHAR(d,  'DD-MON-YYYY'));
---   DBMS_OUTPUT.PUT_LINE(TO_CHAR(ts, 'DD-MON-YYYY HH24:MI:SS'));
--- END;
--- /
+-- Assignment 2: Use numeric constants in a pricing formula
+--------------------------------------------------------------------------------
+DECLARE
+  c_discount_rate CONSTANT NUMBER := 0.10;
+  v_price         NUMBER := 2500;
+  v_final_price   NUMBER;
+BEGIN
+  v_final_price := v_price - (v_price * c_discount_rate);
+  DBMS_OUTPUT.PUT_LINE('A2: Final Price = ' || v_final_price);
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q3 (%TYPE): Declare c_cap CONSTANT employees.salary%TYPE := 150000 and compare to a fetched salary.
--- Answer (commented):
--- DECLARE
---   c_cap   CONSTANT employees.salary%TYPE := 150000;
---   v_sal   employees.salary%TYPE;
--- BEGIN
---   SELECT salary INTO v_sal FROM employees WHERE ROWNUM = 1;
---   IF v_sal > c_cap THEN
---     DBMS_OUTPUT.PUT_LINE('Over cap');
---   ELSE
---     DBMS_OUTPUT.PUT_LINE('Within cap');
---   END IF;
--- EXCEPTION
---   WHEN NO_DATA_FOUND THEN
---     DBMS_OUTPUT.PUT_LINE('No employees found.');
--- END;
--- /
+-- Assignment 3: Use date literal for financial year start
+--------------------------------------------------------------------------------
+DECLARE
+  c_fy_start CONSTANT DATE := DATE '2025-04-01';
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('A3: Financial Year starts on ' ||
+                       TO_CHAR(c_fy_start, 'DD-MON-YYYY'));
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q4 (Character Literal): Use q'[ ]' to store text: He said, "Don't worry". Print it.
--- Answer (commented):
--- DECLARE
---   v_txt VARCHAR2(100) := q'[He said, "Don't worry"]';
--- BEGIN
---   DBMS_OUTPUT.PUT_LINE(v_txt);
--- END;
--- /
+-- Assignment 4: Constant for maximum login attempts
+--------------------------------------------------------------------------------
+DECLARE
+  c_max_attempts CONSTANT NUMBER := 3;
+  v_used_attempts NUMBER := 2;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('A4: Max attempts = ' || c_max_attempts);
+  DBMS_OUTPUT.PUT_LINE('A4: Used attempts= ' || v_used_attempts);
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q5 (Immutability): Show that you cannot reassign a CONSTANT (explain in comments).
--- Answer (commented):
--- -- DECLARE
--- --   c_x CONSTANT NUMBER := 10;
--- -- BEGIN
--- --   c_x := 20; -- Compile-time error: cannot assign to a CONSTANT
--- -- END;
--- -- /
+-- Assignment 5: String literal with single quotes using q-quote
+--------------------------------------------------------------------------------
+DECLARE
+  v_msg VARCHAR2(100) := q'[Today's session is on constants and literals]';
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('A5: ' || v_msg);
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q6 (Derived CONSTANT): Define c_base := 400, c_disc := 0.25, c_net := c_base*(1-c_disc). Print all.
--- Answer (commented):
--- DECLARE
---   c_base CONSTANT NUMBER := 400;
---   c_disc CONSTANT NUMBER := 0.25;
---   c_net  CONSTANT NUMBER := c_base*(1-c_disc);
--- BEGIN
---   DBMS_OUTPUT.PUT_LINE('Base='||c_base||', Disc='||c_disc||', Net='||c_net);
--- END;
--- /
+-- Assignment 6: Use PI constant for circumference calculation
+--------------------------------------------------------------------------------
+DECLARE
+  c_pi      CONSTANT NUMBER := 3.14159;
+  v_radius  NUMBER := 5;
+  v_circum NUMBER;
+BEGIN
+  v_circum := 2 * c_pi * v_radius;
+  DBMS_OUTPUT.PUT_LINE('A6: Circumference = ' || v_circum);
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q7 (Boolean Literal): Use TRUE/FALSE to conditionally print messages.
--- Answer (commented):
--- DECLARE
---   v_active BOOLEAN := TRUE;
--- BEGIN
---   IF v_active THEN
---     DBMS_OUTPUT.PUT_LINE('Active');
---   ELSE
---     DBMS_OUTPUT.PUT_LINE('Inactive');
---   END IF;
--- END;
--- /
+-- Assignment 7: Avoid magic numbers by naming tax rates
+--------------------------------------------------------------------------------
+DECLARE
+  c_tax_low   CONSTANT NUMBER := 0.05;
+  c_tax_high  CONSTANT NUMBER := 0.18;
+  v_amount    NUMBER := 800;
+  v_tax       NUMBER;
+BEGIN
+  IF v_amount <= 1000 THEN
+    v_tax := v_amount * c_tax_low;
+  ELSE
+    v_tax := v_amount * c_tax_high;
+  END IF;
+
+  DBMS_OUTPUT.PUT_LINE('A7: Tax = ' || v_tax);
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q8 (Scope): Declare outer c_rate := 0.10; inner c_rate := 0.15; print both.
--- Answer (commented):
--- DECLARE
---   c_rate CONSTANT NUMBER := 0.10;
--- BEGIN
---   DBMS_OUTPUT.PUT_LINE('Outer='||c_rate);
---   DECLARE
---     c_rate CONSTANT NUMBER := 0.15;
---   BEGIN
---     DBMS_OUTPUT.PUT_LINE('Inner='||c_rate);
---   END;
---   DBMS_OUTPUT.PUT_LINE('Outer again='||c_rate);
--- END;
--- /
+-- Assignment 8: Use boolean constants for feature flags
+--------------------------------------------------------------------------------
+DECLARE
+  c_feature_x_enabled CONSTANT BOOLEAN := TRUE;
+BEGIN
+  IF c_feature_x_enabled THEN
+    DBMS_OUTPUT.PUT_LINE('A8: Feature X is enabled.');
+  ELSE
+    DBMS_OUTPUT.PUT_LINE('A8: Feature X is disabled.');
+  END IF;
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q9 (Literals + Conversion): Format 123456.7 as '123,456.70' regardless of NLS.
--- Answer (commented):
--- DECLARE
---   v NUMBER := 123456.7;
--- BEGIN
---   DBMS_OUTPUT.PUT_LINE(TO_CHAR(v, 'FM999G999D00', 'NLS_NUMERIC_CHARACTERS=.,'));
--- END;
--- /
+-- Assignment 9: Use multiple literals in a formatted summary line
+--------------------------------------------------------------------------------
+DECLARE
+  c_label CONSTANT VARCHAR2(30) := 'Order Total';
+  v_total NUMBER := 4520.75;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('A9: ' || c_label || ' = ' || v_total);
+END;
+/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Q10 (Mini Use-Case): Use constants for GST (0.18) and service charge (0.05) on 1200, print breakdown.
--- Answer (commented):
--- DECLARE
---   c_gst   CONSTANT NUMBER := 0.18;
---   c_svc   CONSTANT NUMBER := 0.05;
---   v_base  NUMBER := 1200;
---   v_gst   NUMBER;
---   v_svc   NUMBER;
---   v_total NUMBER;
--- BEGIN
---   v_gst   := v_base * c_gst;
---   v_svc   := v_base * c_svc;
---   v_total := v_base + v_gst + v_svc;
---   DBMS_OUTPUT.PUT_LINE('Base='||v_base||', GST='||v_gst||', Svc='||v_svc||', Total='||v_total);
--- END;
--- /
+-- Assignment 10: Combine numeric, date, and string constants
 --------------------------------------------------------------------------------
--- End of Assignment
+DECLARE
+  c_project_name CONSTANT VARCHAR2(50) := 'Migration Phase 1';
+  c_start_date   CONSTANT DATE         := DATE '2025-02-01';
+  c_budget       CONSTANT NUMBER       := 500000;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE(
+    'A10: Project "' || c_project_name ||
+    '" starting ' || TO_CHAR(c_start_date, 'DD-MON-YYYY') ||
+    ' with budget ' || c_budget
+  );
+END;
+/
 --------------------------------------------------------------------------------
